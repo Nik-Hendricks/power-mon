@@ -27,7 +27,18 @@ class Server{
         });
 
         app.get('/devices', (req, res) => {
+          res.send(this.PMP.devices);
+        })
 
+        app.get('/data_query', (req, res) => {
+          this.PMP.query_data(this.PMP.devices[0], (e) => {
+            console.log("CALLBACK")
+            res.json(e.message.split("\n")[1])
+          })
+        })
+
+        app.get('/data_query_all', (req, res) => {
+          
         })
     }
 
@@ -41,49 +52,73 @@ class Server{
 }
 
 //Power Management Protocol
-//events are designated by a single byte sent at the beginning of the message
-// p = ping
-// s = status
+//events are designated by a single bit sent at the beginning of the message
+// r = register
 // c = command
 // d = data
+// g = good
 
 class PMP{ //Power Management Protocol
     constructor(){
         this.bind_address = '0.0.0.0';
         this.port = 12121;
         this.socket = dgram.createSocket('udp4');
-        this.devices = []
+        this.devices = [];
+        this.listeners = [];
+        this.udp_messages = [];
         this.events = {
             'r': this.register,
-            'p': this.ping,
-            's': this.status,
             'c': this.command,
             'd': this.data,
+            'g': this.good,
         }
 
     }
 
     register(e){
-      //this.devices.push(e);
-      //this.send(`r ${this.generate_tag()}`, e.remote.address, e.remote.port);
-      console.log(e)
+      delete e.remote.size;
+      //check if device is already registered if not add it to the list
+      var device_exists = false
+      this.devices.forEach((device) => {
+        if(JSON.stringify(device) == JSON.stringify(e.remote)){
+          device_exists = true;
+        }        
+      })
+
+      if(device_exists == false){
+        this.devices.push(e.remote);
+      }
+
+      this.send(`g ${e.message.split(" ")[1]}`, e.remote.address, e.remote.port);
     }
 
-    ping(e){
-      console.log(e)
-    }
-
-    status(e){
-      console.log(e)
-      //
-    }
-
+    //PMP Core
     command(e){
-      console.log(e)
+      console.log(e);
     }
 
     data(e){
-      console.log(e)
+      console.log(e);
+    }
+
+    good(e){
+      this.remove_udp_message(e.message.split(" ")[1]); //remove message from message stack
+      this.listeners.forEach((listener) => {
+        listener(e);
+      })
+    }
+
+    query_data(device, callback){
+      // here we will send a query to the device and call the callback with the data when we receive a good message
+      var tag = this.generate_tag();
+      this.send(`d ${tag}`, device.address, device.port);
+      this.listeners.push((e) => {
+        var msg_tag = e.message.split(" ")[1].replace(/\s/g, '');
+        if(msg_tag == tag){
+          //this.send_once(`g ${tag}`, device.address, device.port);
+          callback(e);
+        }
+      })
     }
 
     generate_tag(){
@@ -103,7 +138,6 @@ class PMP{ //Power Management Protocol
               this.events[event].bind(this, { message, remote })()
             }else{
               console.log("Not a valid PMP event");
-              console.log(event)
             }
         })
 
@@ -112,14 +146,56 @@ class PMP{ //Power Management Protocol
             console.error('UDP socket error:\n', err.stack);
             this.socket.close();
         });
+
+
+        setInterval(() => {
+            for(var i = 0; i < this.udp_messages.length; i++){
+              var message = this.udp_messages[i];
+              if(typeof message !== 'undefined'){
+                var tag = message.tag;
+                var HOST = message.HOST;
+                var PORT = message.PORT;
+                var message = message.message;
+                this.socket.send(message, PORT, HOST, (err) => {
+                  if(err){
+                    console.log(err);
+                  }else{
+                    console.log(`Sent: ${message} to ${HOST}:${PORT}`);
+                  }
+                })
+              }
+            }
+        }, 2000)
+    }
+
+    remove_udp_message(tag){
+      tag = tag.replace(/\s/g, ''); //remove all spaces a newline characters
+      console.log(`removing message with tag ${tag}`)
+      for(var i = 0; i < this.udp_messages.length; i++){
+        if(typeof this.udp_messages[i] !== 'undefined'){
+          if(this.udp_messages[i].tag == tag){
+            delete this.udp_messages[i];
+            console.log("Message removed")
+          }
+        }
+      }
+    }
+
+    send_once(message, HOST, PORT){
+      var tag = message.split(" ")[1];
+      console.log(tag)
+      this.socket.send(message, PORT, HOST, (err) => {
+        if(err){
+          console.log(err);
+        }else{
+          console.log(`Sent: ${message} to ${HOST}:${PORT}`);
+        }
+      })
     }
 
     send(message, HOST, PORT){
-        this.socket.send(message, 0, message.length, PORT, HOST, (err) => {
-            if (err) {
-                console.error(err);
-            }
-        });
+      var tag = message.split(" ")[1];
+      this.udp_messages.push({message: message, tag: tag, HOST: HOST, PORT: PORT});
     }
 }
 
