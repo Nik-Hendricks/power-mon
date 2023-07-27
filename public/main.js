@@ -1,4 +1,7 @@
 import {Text, Header, MainContent, Container} from './components/Common.js'
+
+import DeviceItem from './components/DeviceItem.js'
+
 import Theme from './Theme.js'
 import API from './API.js'
 
@@ -31,6 +34,7 @@ window.customElements.define('map-element', Map);
 
 class APP{
     constructor(){
+        this.clickListener = null;
         this.Header = new Header({title: "Power Mon"})
         this.MainContent = new MainContent()
 
@@ -74,130 +78,39 @@ class APP{
             this.MainContent.Append(el)
         })
     }
-}
 
 
-function create_device_info(device){
-    var ret = []
+    steal_click(func) {
+        this.clickListener = (ev) => {
+            ev.stopPropagation();
+            func(ev);
+        };
+        document.addEventListener('click', this.clickListener);
+    }
     
-    for(var key in device){
-        var t = document.createElement('p')
-        t.innerHTML = key + ": " + device[key]
-        ret.push(new Text({
-            text: key + ": " + device[key],
-            style:{
-                display: "block",
-                position: "relative",
-                width:"calc(100% - 110px)",
-                height: "20px",
-                backgroundColor: Theme.light_grey,
-                color: Theme.light_cyan,
-                marginTop: "10px",
-                marginRight: "10px",
-                borderRadius: "5px",
-                float:'right'
-            }
-        }))
-    }
-
-    return ret;
-}
-
-
-let clickListener = null;
-
-function steal_click(func) {
-    clickListener = (ev) => {
-        ev.stopPropagation();
-        func(ev);
-    };
-    document.addEventListener('click', clickListener);
-}
-
-function remove_steal_click() {
-    if (clickListener) {
-        document.removeEventListener('click', clickListener);
-        clickListener = null;
+    remove_steal_click() {
+        if (this.clickListener) {
+            document.removeEventListener('click', this.clickListener);
+            this.clickListener = null;
+        }
     }
 }
+
+
+
+
+
+
 
 window.onload = () => {
-    const app = new APP()
-    app.render("home")
+    window.app = new APP()
+    window.app.render("home")
     var route = window.location.href.split('/')[3]
-    var toggled;
+    window.toggled = null;
     if(route == ''){
         fetch('/devices').then(res => res.json()).then(data => {
             data.forEach(device => {
-                console.log(device);
-                var els = [
-                    new Container({
-                        style:{
-                            display: "block",
-                            position: "relative",
-                            width:"calc(100% - 20px)",
-                            height: "100px",
-                            backgroundColor: Theme.dark_grey,
-                            color: Theme.light_cyan,
-                            margin: "10px",
-                            borderRadius: "10px",
-                        },
-                        onclick: (ev) => {
-                            var self = els[0];
-                            if(toggled == self){
-                                toggled = null;
-                                self.style.backgroundColor = Theme.dark_grey;
-                                return;
-                            }else{
-                                if(toggled != null){
-                                    toggled.style.backgroundColor = Theme.dark_grey;
-                                }
-                                self.style.backgroundColor = '#1dd1a1'
-                                toggled = self;
-
-                                var map = app.views.home[1].getElementsByTagName('map-element')[0];
-
-                                setTimeout(() => {
-                                    var waypoint = new Container({
-                                        style:{
-                                            display: "block",
-                                            position: "absolute",
-                                            width:"20px",
-                                            height: "20px",
-                                            backgroundColor: Theme.light_grey,
-                                            borderRadius: "5px",
-                                        }
-                                    })
-                                    steal_click((ev) => {
-                                        if(ev.target == map.Map._canvas){
-                                            new mapboxgl.Marker({ element: waypoint }).setLngLat(map.lngLat).addTo(map.Map);
-                                        }
-                                    })
-                                }, 50);
-                                
-                            }
-                        }
-                    }).Append(new Container({
-                        style:{
-                            display: "block",
-                            position: "relative",
-                            width:"80px",
-                            height: "80px",
-                            backgroundColor: Theme.light_grey,
-                            top: "10px",
-                            left:"10px",
-                            borderRadius: "5px",
-                            float:'left'
-                        },
-                        onclick: () => {
-                            API.update_device_db().then(res => {
-                                console.log(res)
-                            })
-                        }
-                    }),
-                    ...create_device_info(device)
-                )]
-                app.views.home[0].Append(...els)
+                window.app.views.home[0].Append(new DeviceItem(device))
             })
         })
     }
