@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const path = require('path');
+const nedb = require('nedb');
 
 const dgram = require('dgram');
 
@@ -15,7 +16,13 @@ class Server{
     constructor(){
         this.PMP = new PMP();
         this.register_express_events();
-        
+        this.db = this.init_db();
+    }
+
+    init_db(){
+      return {
+        devices: new nedb({filename: 'devices.db', autoload: true}),
+      }
     }
 
     register_express_events(){
@@ -27,25 +34,56 @@ class Server{
         });
 
         app.get('/devices', (req, res) => {
-          res.send(this.PMP.devices);
+          this.db.devices.find({}, (err, docs) => {
+            if (err) {
+              // Handle error here
+              res.status(500).json({ error: 'An error occurred' });
+            } else {
+              const excludedFields = ['_id'];
+              const filteredDocs = docs.map((doc) => {
+              const filteredDoc = { ...doc };
+                excludedFields.forEach((field) => delete filteredDoc[field]);
+                return filteredDoc;
+              });
+          
+              res.json(filteredDocs);
+            }
+          });
         })
 
         app.get('/data_query', (req, res) => {
-          //this.PMP.query_data(this.PMP.devices[0], (e) => {
-          //  console.log("CALLBACK")
-          //  res.json(e.message.split("\n")[1])
-          //})
-          res.json([
-            {
-              address: "192.0.0.0",
-              port: 12121,
-              type: "ipv4"
-            }
-          ])
+          this.PMP.query_data(this.PMP.devices[0], (e) => {
+            console.log("CALLBACK")
+            res.json(e.message.split("\n")[1])
+          })
         })
 
         app.get('/data_query_all', (req, res) => {
           
+        })
+
+        app.get('/update_device_db', (req, res) => {
+          this.update_device_db();
+          res.send("OK");
+        })
+    }
+
+    update_device_db(){
+        //this.PMP.devices.forEach((device) => {
+          [
+            {
+              address: "192.0.0.0",
+              port: 12121,
+              type: "ipv4"
+            },
+            {
+              address: "192.10.0.0",
+              port: 12121,
+              type: "ipv4"
+            }
+          ].forEach((device) => {
+            this.db.devices.update({address: device.address}, device, {upsert: true})
+            this.db.devices.persistence.compactDatafile();
         })
     }
 

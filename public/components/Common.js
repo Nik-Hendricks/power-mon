@@ -51,4 +51,16 @@ class Container extends Component{
     }
 }
 
-export {Header, MainContent, Container};
+class Text extends Component{
+    constructor(props){
+        super(props);
+        this.innerHTML = props.text || "Text"
+    }
+}
+
+
+window.customElements.define('main-content', MainContent);
+window.customElements.define('app-header', Header);
+window.customElements.define('container-element', Container);
+window.customElements.define('text-element', Text);
+export {Text, Header, MainContent, Container};

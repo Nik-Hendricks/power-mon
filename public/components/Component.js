@@ -4,6 +4,7 @@ class Component extends HTMLElement{
         props = props || {}
         super();
         this.Style(this, props.style || {})
+        this.onclick = props.onclick || function(){}
     }
 
     Style(el, styles){
@@ -12,14 +13,13 @@ class Component extends HTMLElement{
         })
     }
     
-    Append(children){
-        if(children instanceof Array){
-            children.forEach(child => {
-                this.appendChild(child)
-            })
-        }else{
-            this.appendChild(children)
+    Append(...children){
+        if(!Array.isArray(children)){
+            children = [children]
         }
+        children.forEach(child => {
+            this.appendChild(child)
+        })
         return this;
     }
     
