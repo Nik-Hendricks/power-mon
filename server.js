@@ -31,10 +31,17 @@ class Server{
         })
 
         app.get('/data_query', (req, res) => {
-          this.PMP.query_data(this.PMP.devices[0], (e) => {
-            console.log("CALLBACK")
-            res.json(e.message.split("\n")[1])
-          })
+          //this.PMP.query_data(this.PMP.devices[0], (e) => {
+          //  console.log("CALLBACK")
+          //  res.json(e.message.split("\n")[1])
+          //})
+          res.json([
+            {
+              address: "192.0.0.0",
+              port: 12121,
+              type: "ipv4"
+            }
+          ])
         })
 
         app.get('/data_query_all', (req, res) => {
