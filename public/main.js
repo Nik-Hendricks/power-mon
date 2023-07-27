@@ -5,6 +5,7 @@ import DeviceItem from './components/DeviceItem.js'
 import Theme from './Theme.js'
 import API from './API.js'
 
+window.API = API
 
 
 

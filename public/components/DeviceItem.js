@@ -19,6 +19,7 @@ class DeviceItem extends Container{
                 if(window.toggled == this){
                     window.toggled.style.backgroundColor = Theme.dark_grey;
                     window.toggled = null;
+                    window.app.remove_steal_click();
                     return;
                 }else{
                     if(window.toggled !== null){
@@ -43,6 +44,7 @@ class DeviceItem extends Container{
                         window.app.steal_click((ev) => {
                             if(ev.target == map.Map._canvas){
                                 new mapboxgl.Marker({ element: waypoint }).setLngLat(map.lngLat).addTo(map.Map);
+                                window.API.update_db('devices', props._id, {location: map.lngLat});
                             }
                         })
                     }, 50);
@@ -50,10 +52,7 @@ class DeviceItem extends Container{
                 }
             }
         });
-
-
-
-
+        
         this.Append(new Container({
             style:{
                 display: "block",
@@ -67,7 +66,7 @@ class DeviceItem extends Container{
                 float:'left'
             },
             onclick: () => {
-                API.update_device_db().then(res => {
+                window.API.update_device_db().then(res => {
                     console.log(res)
                 })
             }

@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const path = require('path');
 const nedb = require('nedb');
+//bodyparser
+const bodyParser = require('body-parser');
 
 const dgram = require('dgram');
 
@@ -28,6 +30,7 @@ class Server{
     register_express_events(){
         const publicPath = path.join(__dirname, 'public');
         app.use(express.static(publicPath));
+        app.use(bodyParser.json());
         
         app.get('/', (req, res) => {
           res.sendFile(path.join(publicPath, 'index.html'));
@@ -39,14 +42,16 @@ class Server{
               // Handle error here
               res.status(500).json({ error: 'An error occurred' });
             } else {
-              const excludedFields = ['_id'];
-              const filteredDocs = docs.map((doc) => {
-              const filteredDoc = { ...doc };
-                excludedFields.forEach((field) => delete filteredDoc[field]);
-                return filteredDoc;
-              });
+              //const excludedFields = ['_id'];
+              //const filteredDocs = docs.map((doc) => {
+              //  const filteredDoc = { ...doc };
+              //  excludedFields.forEach((field) => delete filteredDoc[field]);
+              //  return filteredDoc;
+              //});
           
-              res.json(filteredDocs);
+              //res.json(filteredDocs);
+
+              res.json(docs);
             }
           });
         })
@@ -66,22 +71,21 @@ class Server{
           this.update_device_db();
           res.send("OK");
         })
+
+        app.post('/update_db', (req, res) => {
+          console.log(req.body)
+          this.update_db(req.body.db, req.body.id, req.body.data);
+          res.send("OK");
+        })
+    }
+
+    update_db(db, id, data){
+      this.db[db].update({_id: id}, data, {upsert: true})
+      this.db[db].persistence.compactDatafile();
     }
 
     update_device_db(){
-        //this.PMP.devices.forEach((device) => {
-          [
-            {
-              address: "192.0.0.0",
-              port: 12121,
-              type: "ipv4"
-            },
-            {
-              address: "192.10.0.0",
-              port: 12121,
-              type: "ipv4"
-            }
-          ].forEach((device) => {
+        this.PMP.devices.forEach((device) => {
             this.db.devices.update({address: device.address}, device, {upsert: true})
             this.db.devices.persistence.compactDatafile();
         })
