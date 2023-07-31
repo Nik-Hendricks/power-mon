@@ -39,6 +39,8 @@ class APP{
         this.Header = new Header({title: "Power Mon"})
         this.MainContent = new MainContent()
 
+        this.map_markers = []
+
         document.body.style.margin = "0px"
         document.body.append(this.Header, this.MainContent)
 
@@ -95,6 +97,39 @@ class APP{
             this.clickListener = null;
         }
     }
+
+    add_map_marker(lngLat){
+        var map = window.app.views.home[1].getElementsByTagName('map-element')[0];
+        var waypoint = new Container({
+            style:{
+                display: "block",
+                position: "absolute",
+                width:"20px",
+                height: "20px",
+                backgroundColor: Theme.light_grey,
+                borderRadius: "5px",
+            }
+        })
+        var marker = new mapboxgl.Marker({ element: waypoint }).setLngLat(lngLat).addTo(map.Map);
+        this.map_markers.push(marker);
+    }
+
+    remove_map_markers(){
+        this.map_markers.forEach(marker => {
+            marker.remove();
+        })
+    }
+
+    reload(){
+        fetch('/devices').then(res => res.json()).then(data => {
+            this.remove_map_markers();
+            this.views.home[0].innerHTML = '';
+            data.forEach(device => {
+                this.views.home[0].Append(new DeviceItem(device));
+                this.add_map_marker(device.location);
+            })
+        })
+    }
 }
 
 
@@ -109,10 +144,6 @@ window.onload = () => {
     var route = window.location.href.split('/')[3]
     window.toggled = null;
     if(route == ''){
-        fetch('/devices').then(res => res.json()).then(data => {
-            data.forEach(device => {
-                window.app.views.home[0].Append(new DeviceItem(device))
-            })
-        })
+        window.app.reload()
     }
 }

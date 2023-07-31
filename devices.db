@@ -1,2 +1,1 @@
-{"address":"192.10.0.0","port":12121,"type":"ipv4","_id":"biXcCLVRtXK43grB"}
-{"address":"192.0.0.0","port":12121,"type":"ipv4","_id":"p4Q1yDllMlbi9pHU"}
+{"address":"192.168.1.45","family":"IPv4","port":21212,"_id":"FHDiQV92gwkAJquR","location":{"lng":-91.77765407316372,"lat":36.66801131492322}}

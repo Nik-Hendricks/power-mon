@@ -31,20 +31,12 @@ class DeviceItem extends Container{
                     var map = window.app.views.home[1].getElementsByTagName('map-element')[0];
 
                     setTimeout(() => {
-                        var waypoint = new Container({
-                            style:{
-                                display: "block",
-                                position: "absolute",
-                                width:"20px",
-                                height: "20px",
-                                backgroundColor: Theme.light_grey,
-                                borderRadius: "5px",
-                            }
-                        })
                         window.app.steal_click((ev) => {
                             if(ev.target == map.Map._canvas){
-                                new mapboxgl.Marker({ element: waypoint }).setLngLat(map.lngLat).addTo(map.Map);
                                 window.API.update_db('devices', props._id, {location: map.lngLat});
+                                setTimeout(() => {
+                                    window.app.reload();
+                                }, 20)
                             }
                         })
                     }, 50);
@@ -71,21 +63,21 @@ class DeviceItem extends Container{
                 })
             }
         }),
-        ...this.create_device_info())
+        ...this.create_device_info(props))
     }
 
-    create_device_info(){
+    create_device_info(data){
         var ret = [];
 
         for(var i = 0; i < 3; i++){
             ret.push(new Text({
-                text:'asdf',
+                text: Object.keys(data)[i] + ": " + data[Object.keys(data)[i]],
                 style:{
                     display: "block",
                     position: "relative",
                     width:"calc(100% - 110px)",
                     height: "20px",
-                    backgroundColor: Theme.light_grey,
+                    //backgroundColor: Theme.light_grey,
                     color: Theme.light_cyan,
                     marginTop: "10px",
                     marginRight: "10px",

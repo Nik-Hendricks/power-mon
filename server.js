@@ -73,15 +73,24 @@ class Server{
         })
 
         app.post('/update_db', (req, res) => {
-          console.log(req.body)
+          console.log(req.body);
           this.update_db(req.body.db, req.body.id, req.body.data);
           res.send("OK");
         })
     }
 
     update_db(db, id, data){
-      this.db[db].update({_id: id}, data, {upsert: true})
-      this.db[db].persistence.compactDatafile();
+      this.db[db].findOne({_id: id}, (err, old_data) => {
+          if(err){
+            console.log(err);
+          }else{
+            data = {...old_data, ...data};
+            console.log('data')
+            console.log(data);
+            this.db[db].update({_id: id}, data, {upsert: true});
+            this.db[db].persistence.compactDatafile();
+          }
+      })
     }
 
     update_device_db(){
